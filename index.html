@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MathBot — как это работает</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Телеграм-тренажёр по математике и смекалке для 5–6 классов: полный сценарий использования, входная диагностика и банк заданий.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf7; --bg-soft:#f3f1ec; --card:#ffffff; --line:#e3ded4;
+  --ink:#221f1b; --ink-2:#57514a; --ink-3:#8a827a;
+  --accent:#2f6f4e; --accent-soft:#e7f1ea;
+  --amber:#a35b09; --amber-soft:#fbf0dd;
+  --rose:#9b2c2c; --rose-soft:#fbe9e7;
+  --blue:#1f5f8b; --blue-soft:#e4eef6;
+  --radius:14px;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16150f; --bg-soft:#1e1d16; --card:#211f18; --line:#35322a;
+    --ink:#f0ece3; --ink-2:#c0b9ac; --ink-3:#8d8579;
+    --accent:#7dc4a0; --accent-soft:#1e3329;
+    --amber:#e0a256; --amber-soft:#33270f;
+    --rose:#e58a86; --rose-soft:#331b19;
+    --blue:#8ec1e6; --blue-soft:#152833;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16150f; --bg-soft:#1e1d16; --card:#211f18; --line:#35322a;
+  --ink:#f0ece3; --ink-2:#c0b9ac; --ink-3:#8d8579;
+  --accent:#7dc4a0; --accent-soft:#1e3329;
+  --amber:#e0a256; --amber-soft:#33270f;
+  --rose:#e58a86; --rose-soft:#331b19;
+  --blue:#8ec1e6; --blue-soft:#152833;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.62;-webkit-text-size-adjust:100%}
+img{max-width:100%}
+.wrap{max-width:860px;margin:0 auto;padding-inline:20px}
+.wrap-wide{max-width:1120px;margin:0 auto;padding-inline:20px}
+
+/* ── навигация ─────────────────────────────────────── */
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap-wide{display:flex;align-items:center;gap:18px;padding-block:11px;overflow-x:auto;scrollbar-width:none}
+nav .wrap-wide::-webkit-scrollbar{display:none}
+nav b{font-size:15px;white-space:nowrap;letter-spacing:-.01em}
+nav a{color:var(--ink-2);text-decoration:none;font-size:14px;white-space:nowrap;padding:4px 0;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink);border-bottom-color:var(--accent)}
+#themeBtn{margin-left:auto;background:none;border:1px solid var(--line);color:var(--ink-2);border-radius:8px;padding:5px 9px;cursor:pointer;font-size:14px;font-family:inherit}
+
+/* ── типографика ───────────────────────────────────── */
+h1{font-size:clamp(30px,5.5vw,46px);line-height:1.12;letter-spacing:-.025em;margin:0 0 16px;font-weight:700}
+h2{font-size:clamp(23px,3.6vw,31px);line-height:1.2;letter-spacing:-.02em;margin:0 0 6px;font-weight:700}
+h3{font-size:19px;line-height:1.3;margin:34px 0 10px;font-weight:600;letter-spacing:-.01em}
+h4{font-size:16px;margin:24px 0 8px;font-weight:600}
+p{margin:0 0 16px}
+.lede{font-size:19px;color:var(--ink-2);line-height:1.6}
+.sub{color:var(--ink-3);font-size:15px;margin:-2px 0 26px}
+section{padding-block:60px;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+code{font-family:var(--mono);font-size:.9em;background:var(--bg-soft);padding:1.5px 5px;border-radius:5px;border:1px solid var(--line)}
+a{color:var(--accent)}
+ul,ol{margin:0 0 16px;padding-left:22px}
+li{margin-bottom:7px}
+hr{border:0;border-top:1px solid var(--line);margin:32px 0}
+strong{font-weight:600}
+
+/* ── карточки, плашки ──────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px}
+.grid{display:grid;gap:14px}
+@media(min-width:720px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}}
+.chip{display:inline-block;font-size:12.5px;font-weight:600;padding:2.5px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.c-ok{background:var(--accent-soft);color:var(--accent)}
+.c-almost{background:var(--amber-soft);color:var(--amber)}
+.c-no{background:var(--rose-soft);color:var(--rose)}
+.c-unclear{background:var(--blue-soft);color:var(--blue)}
+.c-plain{background:var(--bg-soft);color:var(--ink-2);border-color:var(--line)}
+.note{background:var(--bg-soft);border-left:3px solid var(--accent);padding:13px 17px;border-radius:0 10px 10px 0;margin:20px 0;font-size:15.2px;color:var(--ink-2)}
+.note.warn{border-left-color:var(--amber)}
+.note strong{color:var(--ink)}
+
+/* ── таблицы ───────────────────────────────────────── */
+.tw{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14.6px;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--bg-soft);font-weight:600;font-size:13px;letter-spacing:.02em;color:var(--ink-2)}
+tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-family:var(--mono);font-size:13.4px}
+
+/* ── чат-макет ─────────────────────────────────────── */
+.chat{background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:20px 0}
+.chat-h{font-size:12.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin:0 0 12px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.msg{max-width:86%;margin-bottom:9px;padding:10px 14px;border-radius:15px;font-size:14.8px;line-height:1.52;white-space:pre-wrap}
+.bot{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:5px}
+.me{background:var(--accent);color:#fff;margin-left:auto;border-bottom-right-radius:5px;font-weight:500}
+:root[data-theme="dark"] .me,:root:not([data-theme="light"]) .me{color:#10231a}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .me{color:#fff}}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 12px}
+.btn{font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 11px;color:var(--ink-2)}
+.tick{font-size:12.5px;color:var(--ink-3);text-align:center;margin:14px 0 10px;font-style:italic}
+
+/* ── банк заданий ──────────────────────────────────── */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:22px 0 18px;position:sticky;top:49px;background:color-mix(in srgb,var(--bg) 93%,transparent);backdrop-filter:blur(8px);padding-block:10px;z-index:20}
+.f{font-size:13.6px;font-family:inherit;background:var(--card);border:1px solid var(--line);color:var(--ink-2);border-radius:9px;padding:6px 12px;cursor:pointer}
+.f[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+:root[data-theme="dark"] .f[aria-pressed="true"],:root:not([data-theme="light"]) .f[aria-pressed="true"]{color:#10231a}
+.f-sep{width:1px;height:22px;background:var(--line);margin-inline:4px}
+.blk{margin-bottom:28px}
+.blk-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:4px}
+.blk-h h4{margin:0;font-size:17px}
+.blk-what{font-size:14px;color:var(--ink-3);margin:0 0 12px}
+.task{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-bottom:10px}
+.task-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px}
+.task-st{font-size:15.6px;margin:0 0 8px;line-height:1.5}
+.task-hint{font-size:13.6px;color:var(--ink-3);margin:0}
+.task-sol{margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink-2)}
+.task-sol summary{cursor:pointer;color:var(--accent);font-size:13.6px;font-weight:500;list-style:none}
+.task-sol summary::-webkit-details-marker{display:none}
+.task-sol summary::before{content:"▸ ";font-size:11px}
+.task-sol[open] summary::before{content:"▾ "}
+.task-sol dl{margin:10px 0 0;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13.8px}
+.task-sol dt{color:var(--ink-3);white-space:nowrap}
+.task-sol dd{margin:0}
+.stat{display:flex;flex-wrap:wrap;gap:22px;margin:18px 0 6px}
+.stat div{min-width:74px}
+.stat b{display:block;font-size:26px;line-height:1.15;letter-spacing:-.02em}
+.stat span{font-size:13px;color:var(--ink-3)}
+
+/* ── низ ───────────────────────────────────────────── */
+footer{border-top:1px solid var(--line);padding-block:34px;font-size:14px;color:var(--ink-3)}
+.hero-tags{display:flex;flex-wrap:wrap;gap:7px;margin:22px 0 0}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap-wide">
+  <b>📐 MathBot</b>
+  <a href="#start">Вход</a>
+  <a href="#diag">Диагностика</a>
+  <a href="#bank">Банк заданий</a>
+  <a href="#day">День ученика</a>
+  <a href="#check">Проверка ответа</a>
+  <a href="#hints">Подсказки и стена</a>
+  <a href="#teacher">Учитель</a>
+  <a href="#rules">Правила</a>
+  <a href="#status">Статус</a>
+  <button id="themeBtn" type="button">◐</button>
+</div></nav>
+
+<header class="wrap" style="padding-block:56px 40px">
+  <p class="kicker">Телеграм-тренажёр · 5–6 класс · Атамұра, часть 1</p>
+  <h1>Каждый день немного математики&nbsp;— и каждому своё</h1>
+  <p class="lede">Бот даёт ребёнку набор из пяти-шести задач на 20–25 минут: разминка, тема урока, повторение того, что начало забываться, и одна задача на смекалку. Ответ проверяется мгновенно. Готовый ответ бот не выдаёт никогда — только лестницу из четырёх подсказок, а если и она не помогла, задача уходит «на стену» и возвращается завтра с другими числами.</p>
+  <div class="hero-tags">
+    <span class="chip c-plain">60–65 учеников</span>
+    <span class="chip c-plain">два класса, 5-й и 6-й</span>
+    <span class="chip c-plain">у каждого свои числа</span>
+    <span class="chip c-plain">оценок нет</span>
+    <span class="chip c-plain">учителю ~10 минут в день</span>
+  </div>
+  <div class="note warn" style="margin-top:28px">
+    <strong>Это описание системы, а не работающий бот.</strong> На сегодня готовы проверка ответов
+    (1010 автотестов) и банк входной диагностики, который вы видите ниже. Ядро бота, выдача наборов
+    и отчёты учителя ещё пишутся. Честный статус каждой части — <a href="#status">в конце страницы</a>.
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="start"><div class="wrap">
+  <p class="kicker">Шаг 1</p>
+  <h2>Как ребёнок попадает в бота</h2>
+  <p class="sub">Никакой регистрации, никаких паролей. Учитель раздаёт бумажки с персональными кодами.</p>
+
+  <p>Учитель один раз вводит список класса, и бот выдаёт файл: имя — код — ссылка. Код персональный и одноразовый: <code>6A-07-K3F9</code>. Он работает ровно один раз, поэтому чужим именем не войти. Списка одноклассников внутри бота нет — ребёнок не может выбрать себя из списка и «случайно» оказаться кем-то другим.</p>
+
+  <div class="chat">
+    <p class="chat-h">Первый вход</p>
+    <div class="msg me">/start 6A-07-K3F9</div>
+    <div class="msg bot">Привет! Это тренажёр класса 6 А. Каждый день здесь будет 5 задач по учебнику и одна задача на смекалку — примерно на полчаса.
+
+Ты — Арман К.?</div>
+    <div class="btns"><span class="btn">Да, это я</span><span class="btn">Нет, это не я</span></div>
+    <div class="msg me">Да, это я</div>
+    <div class="msg bot">Как тебя называть в боте?</div>
+    <div class="btns"><span class="btn">🐯 Тигр-7</span><span class="btn">🦊 Лис-3</span><span class="btn">🦅 Беркут-9</span><span class="btn">Своё</span></div>
+    <div class="msg me">🦅 Беркут-9</div>
+    <div class="msg bot">Важно знать:
+• Я — программа, не человек. Твои ответы видит учитель.
+• Ответы я не выдаю никогда — только подсказки. Так честно, и так учатся.
+• Часть подсказок пишет искусственный интеллект — он включён, если родитель подписал согласие у учителя.</div>
+    <div class="msg bot">Как отвечать: просто напиши число.
+• дробь — 3/4
+• смешанное — 2 1/3
+• десятичная — 0,75
+• отрицательное — -5
+• проценты — 25%
+• отношение — 3:4
+• несколько ответов — через точку с запятой: 4; -4
+
+Попробуй: напиши три четверти дробью.</div>
+    <div class="msg me">3/4</div>
+    <div class="msg bot">Точно. Теперь познакомимся — я хочу понять, с чего нам начать.</div>
+  </div>
+
+  <div class="note">Если ребёнок нажал «Нет, это не я» — код не сгорает, а учителю приходит карточка: кто-то получил чужую бумажку. Разбирается за минуту.</div>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="diag"><div class="wrap">
+  <p class="kicker">Шаг 2</p>
+  <h2>Входная диагностика</h2>
+  <p class="sub">Один раз, в первый день. Слова «тест» ребёнок не увидит.</p>
+
+  <p>Прежде чем чему-то учить, надо понять, на чём ребёнок стоит. Пятый класс целиком опирается на арифметику начальной школы; шестой — на всё, что было в пятом. Если дыра там, никакая новая тема не приживётся.</p>
+
+  <p>Поэтому диагностика проверяет <strong>не программу текущего года, а её фундамент</strong>:</p>
+
+  <div class="grid g2" style="margin:20px 0">
+    <div class="card">
+      <h4 style="margin-top:0">5 класс — база начальной школы</h4>
+      <p style="font-size:14.6px;color:var(--ink-2);margin:0">Разряды и сравнение · сложение и вычитание столбиком · умножение · деление уголком и с остатком · порядок действий · доли и часть от числа · единицы измерения · задача в два действия · периметр и площадь · числовая закономерность.</p>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">6 класс — база пятого</h4>
+      <p style="font-size:14.6px;color:var(--ink-2);margin:0">Порядок действий · признаки делимости · НОД и НОК · сравнение и сокращение дробей · сложение и вычитание дробей · умножение и деление дробей · десятичные · проценты · уравнение и задача на части · смекалка на обратный ход.</p>
+    </div>
+  </div>
+
+  <h3>Как устроена лесенка</h3>
+  <p>Каждый блок существует в трёх уровнях. Ребёнок начинает со среднего. Решил — блок закрыт, идём дальше. Не решил — спускаемся на лёгкий, чтобы найти, где именно обрыв: не умеет вовсе или спотыкается только на сложном.</p>
+
+  <div class="tw"><table>
+    <tr><th style="width:118px">Уровень</th><th>Что означает</th><th style="width:210px">Что делает бот дальше</th></tr>
+    <tr><td><span class="chip c-almost">med</span></td><td>типовое задание уровня — с него начинаем</td><td>решил → <b>hard</b>, не решил → <b>easy</b></td></tr>
+    <tr><td><span class="chip c-ok">hard</span></td><td>уверенное владение</td><td>навык засчитан на уровне «умею сам»</td></tr>
+    <tr><td><span class="chip c-unclear">easy</span></td><td>минимальный признак владения</td><td>не решил → навык в работу с самого начала, с разобранным примером</td></tr>
+  </table></div>
+
+  <p>12–15 заданий, 12–18 минут. <strong>Подсказок в диагностике нет</strong> и попытка одна: иначе она растянулась бы на час и превратилась в мучение. Таймера тоже нет — ребёнок не торопится.</p>
+
+  <div class="chat">
+    <p class="chat-h">Как это выглядит</p>
+    <div class="msg bot">Сейчас будет несколько задач — от простых к посложнее. Это не оценка и не контрольная: я просто смотрю, что ты уже умеешь, чтобы не давать тебе то, что ты и так знаешь.
+
+Если не получается — ничего страшного, пиши «не знаю» и идём дальше.</div>
+    <div class="msg bot">📘 1 из 12
+Сократи дробь 18/24.
+Ответ — дробь, например 3/4.</div>
+    <div class="msg me">3/4</div>
+    <div class="msg bot">Верно. Дальше.</div>
+    <div class="msg bot">📘 2 из 12
+Вычисли: 2/3 + 1/4.
+Ответ — дробь.</div>
+    <div class="msg me">3/7</div>
+    <div class="msg bot">Пока не то — и это нормально, идём дальше.</div>
+    <p class="tick">…через 14 минут</p>
+    <div class="msg bot">Готово. Спасибо, что честно прошёл до конца.
+
+Вот твоя карта — серое мы возьмём в работу, зелёное трогать не будем:
+▰▰▰▰ Порядок действий
+▰▰▰▱ Признаки делимости
+▰▰▱▱ Сокращение дробей
+▰▱▱▱ Сложение дробей с разными знаменателями
+▰▰▰▱ Десятичные дроби
+▰▱▱▱ Проценты
+
+Начнём со сложения дробей — там я дам разобранный пример. Первый набор придёт завтра в 8 утра.</div>
+  </div>
+
+  <div class="note"><strong>Ребёнок не видит ни балла, ни процента, ни сравнения с классом</strong> — только карту навыков и фразу «вот отсюда начнём». Учитель видит полную картину: таблицу «ученик × блок × уровень», список пробелов, отсортированный по массовости (что разбирать со всем классом, а что индивидуально), и предложение по парам для групповой работы.</div>
+
+  <p>Результат диагностики <strong>сразу становится настройками</strong>: стартовым уровнем каждого навыка, уровнем сложности заданий (A/B/C) и стадией опоры. С первого же дня каждый ребёнок получает своё, а не всем одно.</p>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="bank"><div class="wrap-wide">
+  <p class="kicker">Банк</p>
+  <h2>Все задания диагностики</h2>
+  <p class="sub">Каждое задание независимо перерешал второй агент, не видевший ответа. Расхождение — брак.</p>
+  <div id="bankStats" class="stat"></div>
+  <div class="filters" id="bankFilters"></div>
+  <div id="bankList"></div>
+  <p id="bankEmpty" style="display:none;color:var(--ink-3)">Банк ещё не сгенерирован.</p>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="day"><div class="wrap">
+  <p class="kicker">Шаг 3</p>
+  <h2>Обычный день</h2>
+  <p class="sub">Один набор, 20–25 минут, шесть-семь заданий.</p>
+
+  <div class="tw"><table>
+    <tr><th style="width:96px">Время</th><th>Что происходит</th></tr>
+    <tr><td class="mono">08:00</td><td>приходит карточка дня: что сегодня, сколько задач, какая серия</td></tr>
+    <tr><td class="mono">когда угодно</td><td>ребёнок садится и проходит набор — дедлайна нет</td></tr>
+    <tr><td class="mono">19:00</td><td>если не начал — одно напоминание. Одно, не три</td></tr>
+    <tr><td class="mono">21:00</td><td>учителю уходит сводка по классу и очередь карточек на проверку</td></tr>
+    <tr><td class="mono">Пн 09:00</td><td>учителю — недельный отчёт по каждому ученику</td></tr>
+  </table></div>
+
+  <h3>Из чего собирается набор</h3>
+  <p>Состав считается для каждого ребёнка отдельно, по его карте навыков:</p>
+  <ol>
+    <li><strong>Разминка</strong> — одно лёгкое задание на навык, которым он уже владеет. Чтобы начать с успеха.</li>
+    <li><strong>Смекалка</strong> — задача недельной темы (рыцари и лжецы, чётность, Дирихле, переливания). Ставится второй, пока голова свежая.</li>
+    <li><strong>Тема дня</strong> — 2–3 задания по параграфу, который учитель проходит на уроке.</li>
+    <li><strong>Повторение</strong> — 1–2 задания по навыкам, которые пора освежить: через 1, 3, 7 и 14 дней после освоения.</li>
+    <li><strong>Со стены</strong> — 0–1 задача, которая вчера не покорилась, сегодня с новыми числами.</li>
+    <li><strong>Рефлексия</strong> — два тапа: что было труднее всего и что помогло.</li>
+  </ol>
+  <p>Не меньше трети набора — всегда повторение, и соседние задачи всегда из разных тем: вперемешку запоминается прочнее, чем блоками. Суббота — день смекалки, воскресенье — выходной.</p>
+
+  <div class="chat">
+    <p class="chat-h">Утро</p>
+    <div class="msg bot">☀️ Доброе утро, Беркут-9! Сегодняшний набор готов:
+
+📘 Математика — §1.1 Отношение двух чисел · 5 задач (~20 мин), из них 2 — повторение
+🧩 Смекалка — рыцари и лжецы · 1 задача
+🔥 Серия: 3 недели
+🧱 На стене: 1
+🎯 Класс вместе: 27 из 40 задач снято со стены</div>
+    <div class="btns"><span class="btn">▶️ Начать</span><span class="btn">🧱 Стена</span><span class="btn">❓ Как вводить ответ</span></div>
+  </div>
+
+  <p>Задача — одно живое сообщение, которое редактируется на месте: условие, потом подсказки, потом итог. Чат не разрастается в простыню.</p>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="check"><div class="wrap">
+  <p class="kicker">Шаг 4</p>
+  <h2>Что происходит с ответом</h2>
+  <p class="sub">Проверяет не нейросеть, а точная арифметика на дробях. Одинаковый ответ всегда получает одинаковый вердикт.</p>
+
+  <p>Вердиктов четыре, и слова «неверно» среди них нет:</p>
+
+  <div class="tw"><table>
+    <tr><th style="width:132px">Вердикт</th><th>Когда</th><th style="width:126px">Тратит попытку?</th></tr>
+    <tr><td><span class="chip c-ok">верно</span></td><td>значение и форма записи совпали</td><td>нет</td></tr>
+    <tr><td><span class="chip c-almost">почти</span></td><td>значение верное, форма — нет: не сократил дробь, забыл единицу, написал долю вместо процентов</td><td><b>нет</b></td></tr>
+    <tr><td><span class="chip c-unclear">не понял запись</span></td><td>бот не разобрал, что написано</td><td><b>нет</b></td></tr>
+    <tr><td><span class="chip c-no">пока не то</span></td><td>ответ действительно другой</td><td>да</td></tr>
+  </table></div>
+
+  <div class="note">Попытку тратит <strong>только</strong> «пока не то». Ошибка формы и непонятая запись не наказываются: ребёнок не должен терять шанс из-за того, что поставил запятую вместо точки.</div>
+
+  <h3>Живые примеры</h3>
+  <p>Ниже — не описание, а фактический вывод системы: этот блок собран прогоном настоящего проверяльщика по показательным вводам.</p>
+  <div id="graderDemo"></div>
+
+  <div class="note warn"><strong>Ответ не раскрывается даже в подтверждении.</strong> Если ребёнок написал <code>6/8</code> там, где нужна сокращённая дробь, бот отвечает «Верно по значению! Сократи дробь» и повторяет <em>его</em> запись — <code>6/8</code>. Показать здесь <code>3/4</code> значило бы выдать ответ вместе с подсказкой.</div>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="hints"><div class="wrap">
+  <p class="kicker">Шаг 5</p>
+  <h2>Лесенка подсказок и стена</h2>
+  <p class="sub">Четыре ступени, ни одна из которых не содержит ответа.</p>
+
+  <div class="tw"><table>
+    <tr><th style="width:112px">Ступень</th><th>Что даёт</th></tr>
+    <tr><td><b>Подсказка 1</b><br><span style="color:var(--ink-3);font-size:13px">понять</span></td><td>Что дано и что найти. Вопрос, а не утверждение: «Величины в разных единицах. Можно ли делить сантиметры на метры напрямую?»</td></tr>
+    <tr><td><b>Подсказка 2</b><br><span style="color:var(--ink-3);font-size:13px">план</span></td><td>Называется метод и шаги, без вычислений. Плюс строка «обсудить задачу с одноклассником можно — числа у всех разные».</td></tr>
+    <tr><td><b>Подсказка 3</b><br><span style="color:var(--ink-3);font-size:13px">первый шаг</span></td><td>Первый шаг проделан на числах этого ребёнка. Последнее действие — не проделано никогда.</td></tr>
+    <tr><td><b>Подсказка 4</b><br><span style="color:var(--ink-3);font-size:13px">близнец</span></td><td>Полностью разобранная <em>похожая</em> задача с другими числами. «Теперь вернись к своей — те же три шага.»</td></tr>
+  </table></div>
+
+  <div class="chat">
+    <p class="chat-h">Как это идёт</p>
+    <div class="msg bot">📘 §1.1 Отношение двух чисел · задача 2 из 5
+Найди отношение величин: 75 см к 1 м.
+Ответ — число (дробь или десятичная), без единиц.</div>
+    <div class="msg me">75</div>
+    <div class="msg bot">Пока не то. Похоже, ты разделил 75 на 1 — но величины в разных единицах, и одна из них не метр, а сто сантиметров.
+
+Что ты уже сделал: перевёл единицы или сразу поделил?</div>
+    <div class="btns"><span class="btn">💡 Подсказка 1 из 4</span><span class="btn">Попробовать ещё</span></div>
+    <div class="msg me">💡 Подсказка 1 из 4</div>
+    <div class="msg bot">Стоп, сначала разберёмся, что дано. Отношение — это частное двух чисел. Но здесь величины в разных единицах: сантиметры и метры. Можно ли делить сантиметры на метры напрямую? Что нужно сделать сначала?</div>
+    <div class="msg me">надо перевести в см</div>
+    <div class="msg bot">Именно. Сколько сантиметров в одном метре?</div>
+    <div class="msg me">100</div>
+    <div class="msg bot">Тогда запиши отношение 75 к 100 дробью и посмотри, можно ли её сократить.</div>
+    <div class="msg me">3/4</div>
+    <div class="msg bot">✅ Верно: 3/4. Ты вернулся к задаче после ошибки и нашёл, где она пряталась, — это сильнее, чем решить с первого раза.</div>
+  </div>
+
+  <h3>Стена</h3>
+  <p>Если и после четвёртой подсказки не вышло — задача не «провалена», она уходит <strong>на стену нерешённых</strong>:</p>
+  <div class="card" style="font-size:15.2px;color:var(--ink-2);margin:16px 0">«Задача уходит на стену нерешённых — не потому что ты не смог, а потому что <em>пока</em> не смог. Завтра она вернётся с новыми числами и чаще всего решается с первого раза.»</div>
+  <p>Так и происходит: назавтра приходит свежий вариант той же задачи с уже открытой четвёртой подсказкой. Снял — «⭐ Снял со стены!». Не снял второй раз — учителю уходит карточка «нужна живая помощь», и бот перестаёт эту задачу подсовывать. По пятницам — «прогулка по стене».</p>
+
+  <div class="note">Максимум пять засчитанных неудачных попыток на задачу. Дальше бот сам уводит ребёнка со стены — чтобы не было получаса барахтанья в одной задаче.</div>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="teacher"><div class="wrap">
+  <p class="kicker">Шаг 6</p>
+  <h2>Что видит учитель</h2>
+  <p class="sub">Одна сводка вечером и очередь карточек с кнопками. Ориентир — 10 минут в день.</p>
+
+  <div class="chat">
+    <p class="chat-h">21:00, сводка по классу</p>
+    <div class="msg bot">📊 6 А · вторник, 22 сентября
+
+✅ Сделали набор: 18 из 24
+🟡 Начали, не закончили: 3 — Асем Т., Данияр К., Ерлан С.
+⚪️ Не заходили: 3 — Динара А., Тимур Ж., Сауле М.
+⚠️ 2+ дня не заходили: Тимур Ж.
+
+🧱 Застряли: §1.2 «деление в отношении» — 6 человек
+📉 Успешность ниже 65% две сессии подряд: Данияр К.
+
+🔍 На проверку: 11 карточек (~5 минут)
+⏭ Завтра по плану: §1.3 Процентное отношение</div>
+    <div class="btns"><span class="btn">Открыть очередь</span><span class="btn">Сменить §</span></div>
+  </div>
+
+  <p><strong>Шесть человек застряли на одном параграфе</strong> — это и есть главная строчка сводки: завтра его стоит разобрать у доски, а не объяснять шестерым по отдельности.</p>
+
+  <div class="chat">
+    <p class="chat-h">Очередь: одна карточка — одно решение</p>
+    <div class="msg bot">6 А · Арман К. (🦅 Беркут-9) · §1.4 №83
+Введено: 45 · в тетради в рамке: 54
+Похоже на опечатку при вводе.</div>
+    <div class="btns"><span class="btn">✅ Зачесть</span><span class="btn">🔁 Вернуть</span><span class="btn">Разберу на уроке</span><span class="btn">💬 Написать</span></div>
+  </div>
+
+  <div class="tw"><table>
+    <tr><th style="width:64px">Приоритет</th><th>Что попадает</th></tr>
+    <tr><td><span class="chip c-no">P1</span></td><td>ответ в боте не сходится с ответом в тетради; второй провал на стене; ребёнку нужна живая помощь</td></tr>
+    <tr><td><span class="chip c-almost">P2</span></td><td>вопрос ребёнка учителю; спорное обоснование в логической задаче; конфликт имени при входе</td></tr>
+    <tr><td><span class="chip c-unclear">P3</span></td><td>жалоба «🚩 ошибка в задании»; трижды не удалось сфотографировать</td></tr>
+    <tr><td><span class="chip c-plain">P4</span></td><td>выборочный контроль: 10% принятых фото, «слишком быстрые» безошибочные наборы</td></tr>
+  </table></div>
+
+  <h3>Команды</h3>
+  <div class="tw"><table>
+    <tr><th style="width:190px" class="mono">команда</th><th>что делает</th></tr>
+    <tr><td class="mono">/roster 6A</td><td>вставить имена построчно → файл «имя — код — ссылка» на печать</td></tr>
+    <tr><td class="mono">/assign 6A §1.3</td><td>сказать боту, какая тема на уроке завтра</td></tr>
+    <tr><td class="mono">/queue</td><td>открыть очередь карточек</td></tr>
+    <tr><td class="mono">/report Арман</td><td>отчёт по одному ученику</td></tr>
+    <tr><td class="mono">/groups 6A 3</td><td>случайные группы + приватная шпаргалка «у кого какой навык ещё не»</td></tr>
+    <tr><td class="mono">/errors 6A</td><td>три анонимных «красивых ошибки» недели для разбора у доски</td></tr>
+    <tr><td class="mono">/export 6A</td><td>CSV: ученик × код цели программы × уровень × даты</td></tr>
+  </table></div>
+  <p><code>/export</code> нужен для формативного оценивания: бот не ставит оценок, но даёт по каждому ученику доказательную базу по кодам целей — её вы вручную переносите в Кунделик.</p>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="rules"><div class="wrap">
+  <p class="kicker">Границы</p>
+  <h2>Что бот не делает никогда</h2>
+
+  <div class="grid g2" style="margin-top:22px">
+    <div class="card"><h4 style="margin-top:0">Не выдаёт ответ</h4><p style="margin:0;font-size:14.6px;color:var(--ink-2)">Ключ не передаётся нейросети вообще. Каждое исходящее сообщение дополнительно проверяется фильтром: если в тексте случайно оказалось число, равное ответу, сообщение переписывается. Полное решение ребёнок видит только на задаче-близнеце с другими числами.</p></div>
+    <div class="card"><h4 style="margin-top:0">Не ставит оценок</h4><p style="margin:0;font-size:14.6px;color:var(--ink-2)">Ни баллов, ни процентов, ни «двоек». Оценки ставит учитель в Кунделик; бот только собирает доказательства по кодам целей.</p></div>
+    <div class="card"><h4 style="margin-top:0">Не сравнивает детей</h4><p style="margin:0;font-size:14.6px;color:var(--ink-2)">Нет лидербордов, публичных баллов и мест в классе. Единственная общая механика — цель всего класса («вместе сняли 40 задач со стены»). Сравнение только с собой вчерашним.</p></div>
+    <div class="card"><h4 style="margin-top:0">Не торопит</h4><p style="margin:0;font-size:14.6px;color:var(--ink-2)">Таймеров нет нигде, включая диагностику. Ничего не «сгорает». Напоминание — максимум одно в день.</p></div>
+    <div class="card"><h4 style="margin-top:0">Не говорит «неверно»</h4><p style="margin:0;font-size:14.6px;color:var(--ink-2)">Только «пока не то». Слова «неверно», «неправильно», а также «умный», «способный», «талант» запрещены в текстах бота автотестом. Хвалят за то, что ребёнок сделал, а не за то, какой он.</p></div>
+    <div class="card"><h4 style="margin-top:0">Не отдаёт лишнего наружу</h4><p style="margin:0;font-size:14.6px;color:var(--ink-2)">Нейросети уходит только псевдоним, текст задачи и ответ ребёнка после вычистки. Имя, @username, телефон, номер класса и школы, фотография целиком — никогда. Данные хранятся на серверах в Европе.</p></div>
+  </div>
+
+  <div class="note" style="margin-top:26px"><strong>Почему так.</strong> Правила не выдуманы: они собраны из исследований о том, что делает и что ломает учебную мотивацию у детей 11–13 лет — «Building Thinking Classrooms» Лильедаля, четыре шага Пойа, работы о вреде публичных сравнений и наградах за скорость. Готовый ответ убивает мышление, публичный рейтинг убивает желание, а «ещё не» вместо «неверно» — это разница между «я не справился» и «я пока не справился».</div>
+</div></section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<section id="status"><div class="wrap">
+  <p class="kicker">Честно</p>
+  <h2>Что готово, а что нет</h2>
+  <p class="sub">На 10 сентября 2026.</p>
+
+  <div class="tw"><table>
+    <tr><th style="width:112px">Состояние</th><th>Часть</th><th>Чем подтверждается</th></tr>
+    <tr><td><span class="chip c-ok">готово</span></td><td>Проверка ответов: все виды ответов, единицы, дроби, проценты, многочлены, списки</td><td class="mono">1010 автотестов</td></tr>
+    <tr><td><span class="chip c-ok">готово</span></td><td>Банк входной диагностики обеих параллелей</td><td>виден <a href="#bank">выше</a></td></tr>
+    <tr><td><span class="chip c-ok">готово</span></td><td>База данных, очереди, конфигурация</td><td>23 таблицы, 36 индексов</td></tr>
+    <tr><td><span class="chip c-almost">пишется</span></td><td>Ядро бота: приём сообщений, вход по коду, карточка задачи, лесенка подсказок</td><td>—</td></tr>
+    <tr><td><span class="chip c-plain">дальше</span></td><td>Выдача наборов, модель мастерства, повторение 1-3-7-14, стена</td><td>—</td></tr>
+    <tr><td><span class="chip c-plain">дальше</span></td><td>Подсказки от нейросети на свободные вопросы</td><td>—</td></tr>
+    <tr><td><span class="chip c-plain">дальше</span></td><td>Фото решения и чтение рамки «Ответ»</td><td>—</td></tr>
+    <tr><td><span class="chip c-plain">дальше</span></td><td>Сводка, очередь карточек, недельный отчёт, экспорт</td><td>—</td></tr>
+  </table></div>
+
+  <p>Порядок работ и сроки — в рабочем журнале проекта. Ближайшая веха: диагностику можно провести в обоих классах, как только заработает ядро бота.</p>
+</div></section>
+
+<footer><div class="wrap">
+  <p style="margin:0">MathBot · тренажёр по математике и смекалке для 5–6 классов (Атамұра, часть 1).<br>
+  Страница собрана автоматически из рабочих данных проекта: примеры проверки ответов — фактический вывод системы, банк заданий — то, что реально загружается в бота.</p>
+</div></footer>
+
+<script>
+// ── тема ──────────────────────────────────────────────
+const tb = document.getElementById('themeBtn');
+try { const t = localStorage.getItem('mb-theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+tb.onclick = () => {
+  const cur = document.documentElement.dataset.theme;
+  const sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const next = cur ? (cur === 'dark' ? 'light' : 'dark') : (sysDark ? 'light' : 'dark');
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('mb-theme', next); } catch {}
+};
+
+// ── примеры работы проверяльщика ──────────────────────
+const CHIP = { correct:'c-ok', almost:'c-almost', unclear:'c-unclear', not_yet:'c-no' };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+fetch('./data/grader-demo.json').then(r => r.json()).then(groups => {
+  document.getElementById('graderDemo').innerHTML = groups.map(g => `
+    <h4>${esc(g.title)}</h4>
+    <p style="font-size:14.4px;color:var(--ink-3);margin:-4px 0 10px">${esc(g.note)}</p>
+    <div class="tw"><table>
+      <tr><th style="width:150px">Ребёнок написал</th><th style="width:132px">Вердикт</th><th>Что бот понял и сказал</th></tr>
+      ${g.cases.map(c => `<tr>
+        <td class="mono">${esc(c.input)}</td>
+        <td><span class="chip ${CHIP[c.verdict]}">${esc(c.verdictRu)}</span>${c.countsAttempt ? '<br><span style="font-size:12px;color:var(--ink-3)">попытка потрачена</span>' : ''}</td>
+        <td>${c.echo ? `понял как <code>${esc(c.echo)}</code>` : ''}${c.matchedError ? `<br><span style="color:var(--ink-2)">${esc(c.matchedError)}</span>` : ''}${c.reason && !c.matchedError ? `<br><span style="font-size:12.4px;color:var(--ink-3)">${esc(REASON_RU[c.reason] || c.reason)}</span>` : ''}</td>
+      </tr>`).join('')}
+    </table></div>`).join('');
+}).catch(() => {});
+
+const REASON_RU = {
+  NOT_REDUCED:'дробь не сокращена', WANT_FRACTION:'нужна дробь, а не десятичная',
+  WANT_MIXED:'нужно смешанное число', WANT_IMPROPER:'нужна неправильная дробь',
+  WANT_DECIMAL:'нужна десятичная', WANT_INTEGER:'нужно целое',
+  ADD_UNIT:'не хватает единицы измерения', WRONG_UNIT:'единица не той величины',
+  UNIT_FORBIDDEN:'отношение — просто число, без единиц',
+  WRITE_PERCENT:'это доля, а нужны проценты', PERCENT_UNEXPECTED:'знак процента здесь лишний',
+  NOT_COLLECTED:'подобные не приведены', ROUND_IT:'нужно округлить',
+  PARSE_FAILED:'запись не разобрана', EMPTY:'пусто', DIV_ZERO:'деление на ноль',
+  TOO_LONG:'это похоже на вопрос, а не на ответ',
+  VALUE_MISMATCH:'значение другое', PARTIAL_SET:'назван не весь набор',
+  ORDER_MISMATCH:'те же числа, но не в том порядке', WRONG_COUNT:'не столько чисел',
+  KNOWN_ERROR:'узнанная типичная ошибка',
+};
+
+// ── банк заданий ──────────────────────────────────────
+const LEVEL = { easy:['easy','c-unclear'], med:['med','c-almost'], hard:['hard','c-ok'] };
+let BANK = null, fGrade = 6, fLevel = 'all';
+
+fetch('./data/bank.json').then(r => r.json()).then(d => { BANK = d; renderFilters(); renderBank(); })
+  .catch(() => { document.getElementById('bankEmpty').style.display = 'block'; });
+
+function renderFilters() {
+  const grades = [...new Set(BANK.blocks.map(b => b.grade))].sort();
+  document.getElementById('bankFilters').innerHTML =
+    grades.map(g => `<button class="f" data-g="${g}" aria-pressed="${g === fGrade}">${g} класс</button>`).join('') +
+    '<span class="f-sep"></span>' +
+    ['all','easy','med','hard'].map(l => `<button class="f" data-l="${l}" aria-pressed="${l === fLevel}">${l === 'all' ? 'все уровни' : l}</button>`).join('');
+  document.getElementById('bankFilters').onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.g) fGrade = +b.dataset.g;
+    if (b.dataset.l) fLevel = b.dataset.l;
+    renderFilters(); renderBank();
+  };
+}
+
+function renderBank() {
+  const blocks = BANK.blocks.filter(b => b.grade === fGrade);
+  const shown = blocks.reduce((s, b) => s + b.tasks.filter(t => fLevel === 'all' || t.level === fLevel).length, 0);
+  document.getElementById('bankStats').innerHTML = `
+    <div><b>${BANK.total}</b><span>заданий всего</span></div>
+    <div><b>${blocks.length}</b><span>блоков в ${fGrade} классе</span></div>
+    <div><b>${shown}</b><span>показано</span></div>`;
+  document.getElementById('bankList').innerHTML = blocks.map(b => `
+    <div class="blk">
+      <div class="blk-h"><h4>${esc(b.title)}</h4><span class="chip c-plain">${esc(b.block)}</span></div>
+      <p class="blk-what">Проверяет: ${esc(b.what)}</p>
+      ${b.tasks.filter(t => fLevel === 'all' || t.level === fLevel).map(t => `
+        <div class="task">
+          <div class="task-top">
+            <span class="chip ${LEVEL[t.level] ? LEVEL[t.level][1] : 'c-plain'}">${esc(t.level)}</span>
+            <span style="font-size:13px;color:var(--ink-3)">${esc(t.diagnoses)}</span>
+            <span style="margin-left:auto;font-size:12.5px;color:var(--ink-3)">~${t.t_par_sec} с</span>
+          </div>
+          <p class="task-st">${esc(t.statement)}</p>
+          <p class="task-hint">${esc(t.answer_format_hint)}</p>
+          <details class="task-sol"><summary>решение и ответ</summary>
+            <dl>
+              <dt>Ответ</dt><dd><code>${esc(t.key_display)}</code></dd>
+              <dt>Решение</dt><dd>${esc(t.solution)}</dd>
+              <dt>Проверка</dt><dd>${t.verified
+                ? '<span class="chip c-ok">перерешано вслепую, сошлось</span>'
+                : '<span class="chip c-almost">' + esc(t.verify_note || 'требует проверки') + '</span>'}</dd>
+            </dl>
+          </details>
+        </div>`).join('')}
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

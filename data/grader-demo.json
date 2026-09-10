@@ -1,0 +1,335 @@
+[
+  {
+    "title": "Одно и то же число, записанное по-разному",
+    "note": "Ребёнок пишет как привык — бот принимает любую верную запись.",
+    "cases": [
+      {
+        "input": "0,75",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "0,75",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "3/4",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "3/4",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "6/8",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "3/4",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "75/100",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "3/4",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "Ответ: 3/4",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "3/4",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "2 1/3",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "7/3",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "0,(3)",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "1/3",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "– 5",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "-5",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "12 500",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "12500",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "x = 12",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "12",
+        "countsAttempt": false,
+        "matchedError": null
+      }
+    ]
+  },
+  {
+    "title": "Значение верное, а форма — нет",
+    "note": "Это «почти»: попытка не тратится, ответ не раскрывается, ребёнку говорят, что поправить.",
+    "cases": [
+      {
+        "input": "6/8",
+        "verdict": "almost",
+        "verdictRu": "почти",
+        "reason": "NOT_REDUCED",
+        "echo": "6/8",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "0,75",
+        "verdict": "almost",
+        "verdictRu": "почти",
+        "reason": "WANT_FRACTION",
+        "echo": "0,75",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "0,25",
+        "verdict": "almost",
+        "verdictRu": "почти",
+        "reason": "WRITE_PERCENT",
+        "echo": "0,25",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "0,25%",
+        "verdict": "almost",
+        "verdictRu": "почти",
+        "reason": "WRITE_PERCENT",
+        "echo": "0,25%",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "3/4 см",
+        "verdict": "almost",
+        "verdictRu": "почти",
+        "reason": "UNIT_FORBIDDEN",
+        "echo": "3/4 см",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "3:4 см",
+        "verdict": "almost",
+        "verdictRu": "почти",
+        "reason": "UNIT_FORBIDDEN",
+        "echo": "3:4 см",
+        "countsAttempt": false,
+        "matchedError": null
+      }
+    ]
+  },
+  {
+    "title": "Единицы измерения",
+    "note": "Величины приводятся к одной единице, составные суммируются.",
+    "cases": [
+      {
+        "input": "150 см",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "150 см",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "1,5 м",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "1,5 м",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "1 ч 30 мин",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "90 мин",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "1,5 ч",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "1,5 ч",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "5 м.",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "5 м",
+        "countsAttempt": false,
+        "matchedError": null
+      }
+    ]
+  },
+  {
+    "title": "Бот не понял запись — попытка не тратится",
+    "note": "Непонятое никогда не считается ошибкой: ребёнка просят переписать.",
+    "cases": [
+      {
+        "input": "не знаю",
+        "verdict": "unclear",
+        "verdictRu": "не понял запись",
+        "reason": "PARSE_FAILED",
+        "echo": "не знаю",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "12 5",
+        "verdict": "unclear",
+        "verdictRu": "не понял запись",
+        "reason": "PARSE_FAILED",
+        "echo": "12 5",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "1/0",
+        "verdict": "unclear",
+        "verdictRu": "не понял запись",
+        "reason": "DIV_ZERO",
+        "echo": "1/0",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "???",
+        "verdict": "unclear",
+        "verdictRu": "не понял запись",
+        "reason": "PARSE_FAILED",
+        "echo": "???",
+        "countsAttempt": false,
+        "matchedError": null
+      }
+    ]
+  },
+  {
+    "title": "Ответ неверный — «пока не то»",
+    "note": "Единственный случай, когда попытка тратится. Если ошибка типичная — бот объясняет её механизм, не выдавая ответа.",
+    "cases": [
+      {
+        "input": "4/3",
+        "verdict": "not_yet",
+        "verdictRu": "пока не то",
+        "reason": "KNOWN_ERROR",
+        "echo": "4/3",
+        "countsAttempt": true,
+        "matchedError": "Ты нашёл обратное отношение: 1 м к 75 см. Что стоит первым?"
+      },
+      {
+        "input": "75",
+        "verdict": "not_yet",
+        "verdictRu": "пока не то",
+        "reason": "KNOWN_ERROR",
+        "echo": "75",
+        "countsAttempt": true,
+        "matchedError": "Ты разделил 75 на 1 — но величины в разных единицах."
+      },
+      {
+        "input": "1/2",
+        "verdict": "not_yet",
+        "verdictRu": "пока не то",
+        "reason": "VALUE_MISMATCH",
+        "echo": "1/2",
+        "countsAttempt": true,
+        "matchedError": null
+      }
+    ]
+  },
+  {
+    "title": "Несколько ответов сразу",
+    "note": "Разделитель — точка с запятой. Запятая никогда не делит список: это десятичный разделитель.",
+    "cases": [
+      {
+        "input": "-3; 3",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "-3; 3",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "3; -3",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "3; -3",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "1) 4; 2) -4",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "4; -4",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "x1 = -3; x2 = 3",
+        "verdict": "correct",
+        "verdictRu": "верно",
+        "reason": null,
+        "echo": "-3; 3",
+        "countsAttempt": false,
+        "matchedError": null
+      },
+      {
+        "input": "3",
+        "verdict": "not_yet",
+        "verdictRu": "пока не то",
+        "reason": "PARTIAL_SET",
+        "echo": "3",
+        "countsAttempt": true,
+        "matchedError": null
+      }
+    ]
+  }
+]
